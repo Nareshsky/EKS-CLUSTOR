@@ -1,0 +1,63 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  Vpc:
+    Type: "AWS::EC2::VPC"
+    Properties:
+      CidrBlock: "10.0.0.0/16"
+      EnableDnsHostnames: true
+      Tags:
+        - Key: "Name"
+          Value: "my-vpc"
+  SubnetA:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: "us-west-2a"
+      CidrBlock: "10.0.1.0/24"
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: "Name"
+          Value: "my-subnet-a"
+  SubnetB:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: "us-west-2b"
+      CidrBlock: "10.0.2.0/24"
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: "Name"
+          Value: "my-subnet-b"
+  SecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Security group for my EKS cluster"
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: "Name"
+          Value: "my-security-group"
+  EKSCluster:
+    Type: "AWS::EKS::Cluster"
+    Properties:
+      Name: "my-cluster"
+      ResourcesVpcConfig:
+        SecurityGroupIds:
+          - !Ref SecurityGroup
+        SubnetIds:
+          - !Ref SubnetA
+          - !Ref SubnetB
+      Version: "1.21"
+      RoleArn: "arn:aws:iam::123456789012:role/eksServiceRole"
+  EKSNodeGroup:
+    Type: "AWS::EKS::Nodegroup"
+    Properties:
+      ClusterName: !Ref EKSCluster
+      NodeRole: "arn:aws:iam::123456789012:instance-profile/eksNodeRole"
+      NodegroupName: "my-node-group"
+      ScalingConfig:
+        DesiredSize: 2
+        MaxSize: 3
+        MinSize: 1
+      Subnets:
+        - !Ref SubnetA
+        - !Ref SubnetB
+      InstanceTypes:
+        - "t2.micro"
